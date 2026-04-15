@@ -1,0 +1,84 @@
+import json
+from openai import AsyncOpenAI
+from fastapi import HTTPException
+from pydantic import ValidationError
+from core.config import settings
+from .schemas import GenerateRequest, GenerateResponse
+
+# Initialize the async OpenAI client
+client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+SYSTEM_PROMPT = """
+You are a technical workflow parser. Given a user description of an API workflow, output ONLY valid JSON matching this schema:
+{
+  "nodes": [
+    {
+      "id": "string (use simple numbers like '1', '2')",
+      "type": "startNode | apiNode | conditionNode",
+      "position": { "x": float, "y": float },
+      "data": {
+        "label": "string",
+        "url": "string (optional)",
+        "method": "GET | POST | PUT | DELETE (optional)",
+        "condition": "string (optional, only for conditionNode)"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "string (e.g., 'e1-2')",
+      "source": "string (node id)",
+      "sourceHandle": "out | true | false (optional)",
+      "target": "string (node id)"
+    }
+  ]
+}
+
+RULES:
+1. NO prose, NO markdown formatting, ONLY pure JSON.
+2. Always start with exactly one 'startNode' (x: 50, y: 150).
+3. Space out the x and y coordinates logically from left to right (e.g., x increments by 250).
+4. Limit to 3-8 nodes.
+5. Infer the HTTP method and URL if not explicitly stated, but use user values if provided.
+"""
+
+class AIService:
+    @staticmethod
+    async def generate_workflow(request: GenerateRequest) -> GenerateResponse:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": request.prompt}
+        ]
+
+        # Attempt 1
+        try:
+            return await AIService._call_and_validate(messages)
+        except ValidationError as e:
+            # Attempt 2 (Retry on validation failure)
+            print("AI generated invalid schema. Retrying...")
+            messages.append({"role": "assistant", "content": "The JSON you provided failed schema validation."})
+            messages.append({"role": "user", "content": f"Fix these validation errors and return ONLY valid JSON: {str(e)}"})
+            
+            try:
+                return await AIService._call_and_validate(messages)
+            except ValidationError:
+                raise HTTPException(status_code=422, detail="AI failed to generate a valid workflow graph after retrying.")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def _call_and_validate(messages: list) -> GenerateResponse:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.2,
+            max_tokens=1000,
+            response_format={ "type": "json_object" }
+        )
+        
+        raw_json = response.choices[0].message.content
+        
+        # Pydantic will automatically validate the raw dictionary against GenerateResponse
+        # If nodes or edges are missing/malformed, it throws a ValidationError
+        parsed_data = json.loads(raw_json)
+        return GenerateResponse(**parsed_data)
