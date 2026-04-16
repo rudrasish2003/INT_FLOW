@@ -37,9 +37,10 @@ You are a technical workflow parser. Given a user description of an API workflow
 RULES:
 1. NO prose, NO markdown formatting, ONLY pure JSON.
 2. Always start with exactly one 'startNode' (x: 50, y: 150).
-3. Space out the x and y coordinates logically from left to right (e.g., x increments by 250).
-4. Limit to 3-8 nodes.
-5. Infer the HTTP method and URL if not explicitly stated, but use user values if provided.
+3. Always terminate every workflow path with an 'endNode' (e.g., label: "End").
+4. Space out the x and y coordinates logically from left to right (e.g., x increments by 250).
+5. Limit to 3-8 nodes.
+6. Infer the HTTP method and URL if not explicitly stated, but use user values if provided.
 """
 
 class AIService:

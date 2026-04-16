@@ -17,10 +17,13 @@ class NodeDataSchema(BaseModel):
     headers: Optional[dict] = None
     body: Optional[dict] = None
     condition: Optional[str] = None
+    conditionVariable: Optional[str] = None
+    conditionOperator: Optional[str] = None
+    conditionValue: Optional[str] = None
 
 class NodeSchema(BaseModel):
     id: str
-    type: Literal["start", "api", "condition", "startNode", "apiNode", "conditionNode"]
+    type: Literal["start", "api", "condition", "startNode", "apiNode", "conditionNode","endNode"]
     position: PositionSchema
     data: NodeDataSchema
 
