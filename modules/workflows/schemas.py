@@ -20,12 +20,16 @@ class NodeDataSchema(BaseModel):
     conditionVariable: Optional[str] = None
     conditionOperator: Optional[str] = None
     conditionValue: Optional[str] = None
+    pynode_type: Optional[str] = None    # ADD: explicit PyNode class override
+    pynode_config: Optional[dict] = None
 
 class NodeSchema(BaseModel):
     id: str
-    type: Literal["start", "api", "condition", "startNode", "apiNode", "conditionNode","endNode"]
+    type: Literal["start", "api", "condition", "startNode", "apiNode", "conditionNode","endNode", "functionNode", "debugNode", "delayNode",          # ADD THESE
+        "webhookNode", "splitNode", "joinNode" ]
     position: PositionSchema
     data: NodeDataSchema
+    
 
 class EdgeSchema(BaseModel):
     id: str

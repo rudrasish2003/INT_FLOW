@@ -14,13 +14,18 @@ You are a technical workflow parser. Given a user description of an API workflow
   "nodes": [
     {
       "id": "string (use simple numbers like '1', '2')",
-      "type": "startNode | apiNode | conditionNode",
+      "type": "startNode | apiNode | conditionNode | endNode | functionNode | debugNode | delayNode",
       "position": { "x": float, "y": float },
       "data": {
         "label": "string",
-        "url": "string (optional)",
-        "method": "GET | POST | PUT | DELETE (optional)",
-        "condition": "string (optional, only for conditionNode)"
+        "url": "string (optional, for apiNode)",
+        "method": "GET | POST | PUT | DELETE (optional, for apiNode)",
+        "condition": "string (optional, for conditionNode)",
+        "conditionVariable": "string (optional)",
+        "conditionOperator": "== | != | > | < | >= | <= (optional)",
+        "conditionValue": "string (optional)",
+        "code": "string (optional, for functionNode — valid Python lines)",
+        "timeout": "number (optional, for delayNode — seconds)"
       }
     }
   ],
@@ -34,13 +39,23 @@ You are a technical workflow parser. Given a user description of an API workflow
   ]
 }
 
+NODE TYPES:
+- startNode    — entry point, every workflow needs exactly one
+- apiNode      — outbound HTTP call (needs url and method)
+- conditionNode — branches on true/false (use sourceHandle 'true'/'false' on edges)
+- endNode      — terminal sink, ends execution
+- functionNode — inline Python transform (data.code)
+- debugNode    — inspect payload, also a terminal sink
+- delayNode    — waits before passing payload (data.timeout in seconds)
+
 RULES:
-1. NO prose, NO markdown formatting, ONLY pure JSON.
-2. Always start with exactly one 'startNode' (x: 50, y: 150).
-3. Always terminate every workflow path with an 'endNode' (e.g., label: "End").
-4. Space out the x and y coordinates logically from left to right (e.g., x increments by 250).
-5. Limit to 3-8 nodes.
-6. Infer the HTTP method and URL if not explicitly stated, but use user values if provided.
+1. NO prose, NO markdown, ONLY pure JSON.
+2. Always start with exactly one 'startNode' at x:50, y:150.
+3. Always end every path with 'endNode' or 'debugNode'.
+4. Increment x by 250 per step for clean layout.
+5. Limit to 3-8 nodes total.
+6. conditionNode edges MUST use sourceHandle 'true' or 'false'.
+7. All other edges use sourceHandle 'out'.
 """
 
 class AIService:

@@ -6,3 +6,6 @@ pydantic>=2.9.0
 pydantic-settings>=2.5.0
 python-dotenv>=1.0.1
 openai>=1.12.0
+httpx[anyio]>=0.27.0
+sse-starlette>=2.1.0
+httpx>=0.27.0
