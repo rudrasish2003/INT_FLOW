@@ -12,9 +12,11 @@ from modules.health.router import router as health_router
 from modules.ai.router import router as ai_router
 
 # Add this below your workflows_router registration
-from modules.pynode_bridge.router import router as pynode_bridge_router
+ 
 
 from modules.execution.router import router as execution_router
+from modules.demo import wfh_router
+# Then app.include_router(wfh_router.router) would work.
 
 
 @asynccontextmanager
@@ -52,5 +54,6 @@ async def root():
 
 app.include_router(workflows_router)
 app.include_router(ai_router)
-app.include_router(pynode_bridge_router)
+ 
 app.include_router(execution_router)
+app.include_router(wfh_router.router)
