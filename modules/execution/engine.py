@@ -65,19 +65,36 @@ class WorkflowEngine:
             label = node.get("data", {}).get("label", node_id)
             try:
                 output, handle = await run_node(node, payload)
+
+                # ── Check if the node output itself signals an error ──────
+                # e.g. API returned 4xx/5xx or condition eval failed
+                node_type = node.get("type", "")
+                is_error_output = False
+
+                if isinstance(output, dict):
+                    status_code = output.get("status_code", 200)
+                    # Treat 4xx/5xx HTTP responses as errors and stop
+                    if isinstance(status_code, int) and status_code >= 400:
+                        is_error_output = True
+
+                if is_error_output:
+                    self._log(node_id, label, output, "error")
+                    self.status = "error"
+                    return  # ← Stop the entire workflow
+
                 self._log(node_id, label, output, "ok")
 
                 if handle is None:
-                    continue  # Terminal node, stop this branch
+                    continue  # Terminal node — stop this branch
 
                 next_ids = self._get_next_nodes(node_id, handle)
                 for next_id in next_ids:
                     queue.append((next_id, output))
 
             except Exception as e:
-                self._log(node_id, label, str(e), "error")
+                self._log(node_id, label, {"error": str(e)}, "error")
                 self.status = "error"
-                return
+                return  # ← Stop on any exception too
 
         self.status = "completed"
 
